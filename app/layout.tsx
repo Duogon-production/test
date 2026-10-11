@@ -32,11 +32,11 @@ export default async function RootLayout({
 				options: { showOptionalFields: true },
 				variables: {
 					colorPrimary: '#7ed957',
-					colorText: '#1c2418',
-					colorTextOnPrimaryBackground: '#000000',
+					colorForeground: '#1c2418',
+					colorPrimaryForeground: '#000000',
 					colorBackground: '#f6f9f2',
-					colorInputBackground: '#f6f9f2',
-					colorInputText: '#1c2418',
+					colorInput: '#f6f9f2',
+					colorInputForeground: '#1c2418',
 					borderRadius: '1rem',
 				},
 				elements: {
