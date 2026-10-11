@@ -1,0 +1,461 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Course {
+  id            String   @id @default(uuid())
+  userId        String
+  title         String   @db.Text
+  isPublished   Boolean  @default(false)
+  description   String?  @db.Text
+  imageUrl      String?  @db.Text
+  categoryId    String?
+  chapterNumber Int?
+  // Prefix shown before the number, e.g. Chapter, Month, Unit. See shared/chapter-label.ts.
+  chapterType   String   @default("Chapter")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  chapters        Chapter[]
+  attachments     Attachment[]
+  Feedback        Feedback[]
+  CourseStatistic CourseStatistic?
+
+  @@index([categoryId])
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
+
+  courses Course[]
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  fileKey   String?
+  fileSize  Int?     @default(0)
+  courseId  String
+  chapterId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([chapterId])
+}
+
+model Chapter {
+  id               String   @id @default(uuid())
+  title            String
+  position         Int
+  isPublished      Boolean  @default(false)
+  courseId         String
+  description      String?  @db.Text
+  videoUrl         String?  @db.Text
+  solutionVideoUrl String?  @db.Text
+  isFree           Boolean  @default(false)
+  contentType      String?  @default("VIDEO_EXPLANATION")
+  // FILE_UPLOAD (students upload their work) or PLATFORM_QUESTIONS (questions are authored on the platform)
+  homeworkMode     String   @default("FILE_UPLOAD")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  userProgresses      UserProgress[]
+  homeworkSubmissions Submission[]
+  attachments         Attachment[]
+  notes               Note[]
+  homeworkQuestions   HomeworkQuestion[]
+  muxData             MuxData?
+  course              Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+// MuxData is the data that is stored in Mux Video
+model MuxData {
+  id String @id @default(uuid())
+
+  // assetId is the ID of the asset in Mux Video that contains the video (asset is a container for a video)
+  assetId   String
+  chapterId String @unique
+
+  // playbackId is the ID of the playback in Mux Video that contains the video (playback is a playable video)
+  playbackId String?
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+}
+
+model UserProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  chapterId   String
+  isCompleted Boolean  @default(false)
+  isWatched   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+  @@index([chapterId])
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  ASSISTANT
+  STUDENT
+}
+
+model User {
+  id          String    @id @default(uuid())
+  externalId  String    @unique
+  email       String    @unique
+  name        String?
+  role        Role      @default(STUDENT)
+  isApproved  Boolean   @default(false)
+  approvedAt  DateTime?
+  approvedBy  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userGroups   UserGroup[]
+  submissions  Submission[]
+  examSessions ExamSession[]
+  supportConversations SupportConversation[]
+}
+
+model Submission {
+  id         String           @id @default(uuid())
+  userId     String
+  userName   String?
+  chapterId  String
+  fileUrl    String           @db.Text
+  fileKey    String?
+  fileSize   Int?             @default(0)
+  status     SubmissionStatus @default(PENDING_APPROVAL)
+  approvedBy String?
+  // Optional feedback written by an admin/teacher while reviewing the submission
+  reviewNote String?          @db.Text
+  reviewedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+  @@index([chapterId])
+  @@index([userId])
+  @@map("HomeworkSubmission")
+}
+
+enum SubmissionStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+// A question authored on the platform for a homework (or quiz-style) segment.
+// imageUrl is an external web URL, never an uploaded file.
+model HomeworkQuestion {
+  id        String   @id @default(uuid())
+  chapterId String
+  position  Int
+  text      String   @db.Text
+  imageUrl  String?  @db.Text
+  answer    String?  @db.Text
+  answerImageUrl String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([chapterId, position])
+}
+
+model Progress {
+  id                  String   @id @default(uuid())
+  userId              String
+  chapterId           String
+  explanationWatchPct Float    @default(0)
+  solutionWatchPct    Float    @default(0)
+  isWatched           Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, chapterId])
+  @@index([chapterId])
+}
+
+model Group {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  schedule  Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  students  UserGroup[]
+}
+
+model UserGroup {
+  id        String   @id @default(uuid())
+  userId    String
+  groupId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+model GroupQuestion {
+  id         String   @id @default(uuid())
+  groupId    String
+  userId     String
+  userName   String
+  userRole   String   @default("student")
+  question   String   @db.Text
+  answer     String?  @db.Text
+  answeredBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([groupId])
+}
+
+enum TicketCategory {
+  VIDEO_PLAYBACK
+  HOMEWORK_UPLOAD
+  ACCOUNT_ACCESS
+  OTHER
+
+  @@map("SupportIssueCategory")
+}
+
+model SupportTicket {
+  id           String         @id @default(uuid())
+  userId       String?
+  studentEmail String
+  category     TicketCategory @map("issueCategory")
+  message      String         @db.Text
+  status       String         @default("OPEN")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  userId    String
+  chapterId String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([chapterId])
+}
+
+model Personalization {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  dashboard String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Feedback {
+  id        String @id @default(uuid())
+  userId    String
+  courseId  String
+  content   String
+  fullName  String
+  avatarUrl String
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model CourseStatistic {
+  id         String   @id @default(uuid())
+  courseId   String
+  categoryId String
+  views      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId])
+  @@index([courseId])
+}
+
+// ---------------------------------------------------------------------------
+// Exams: multi-attempt exams with MCQ (auto-graded) and written questions.
+// ---------------------------------------------------------------------------
+
+model Exam {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?  @db.Text
+  // null = unlimited / no time limit; otherwise 1..1440 minutes per attempt
+  durationMinutes Int?
+  // 1 or 2, set by the admin
+  maxAttempts     Int      @default(1)
+  isPublished     Boolean  @default(false)
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  questions ExamQuestion[]
+  sessions  ExamSession[]
+}
+
+model ExamQuestion {
+  id            String   @id @default(uuid())
+  examId        String
+  position      Int
+  // MCQ or WRITTEN
+  type          String   @default("MCQ")
+  text          String   @db.Text
+  imageUrl      String?  @db.Text
+  // MCQ: JSON array of choice strings; correctChoice is the 0-based index
+  choices       Json?
+  correctChoice Int?
+  points        Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId, position])
+}
+
+// One row per student per exam. Holds the lifecycle state and the final marks.
+model ExamSession {
+  id             String    @id @default(uuid())
+  examId         String
+  userId         String
+  // IN_PROGRESS | AWAITING_DECISION | FINALIZED
+  status         String    @default("IN_PROGRESS")
+  currentAttempt Int       @default(1)
+  finalizedAt    DateTime?
+  mcqScore       Int?
+  mcqTotal       Int?
+  // NONE | UNDER_CORRECTION | GRADED
+  writtenStatus  String    @default("NONE")
+  writtenScore   Float?
+  // per-question written marks: { [questionId]: number }
+  writtenScores  Json?
+  reviewNote     String?   @db.Text
+  gradedBy       String?
+  gradedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  exam     Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts ExamAttempt[]
+
+  @@unique([examId, userId])
+  @@index([examId, writtenStatus])
+  @@index([userId])
+}
+
+// One row per attempt. While submittedAt is null, `answers` is the autosaved draft.
+// answers: { [questionId]: { choice?, text?, imageUrl?, imageKey? } }
+model ExamAttempt {
+  id            String    @id @default(uuid())
+  sessionId     String
+  attemptNumber Int
+  startedAt     DateTime  @default(now())
+  submittedAt   DateTime?
+  answers       Json      @default("{}")
+  mcqScore      Int?
+
+  session ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, attemptNumber])
+}
+
+// ---------------------------------------------------------------------------
+// Support: ticket conversations between a user and the website admins.
+// Identity (name, email, avatar) is copied from the signed-in session, never typed.
+// ---------------------------------------------------------------------------
+
+model SupportConversation {
+  id               String   @id @default(uuid())
+  userId           String
+  subject          String
+  // OPEN | IN_PROGRESS | RESOLVED
+  status           String   @default("OPEN")
+  studentName      String
+  studentEmail     String
+  studentAvatarUrl String?  @db.Text
+  lastMessageAt    DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages SupportMessage[]
+
+  @@index([userId, lastMessageAt])
+  @@index([status, lastMessageAt])
+}
+
+model SupportMessage {
+  id              String   @id @default(uuid())
+  conversationId  String
+  senderId        String
+  // STUDENT | ADMIN
+  senderRole      String
+  senderName      String
+  senderAvatarUrl String?  @db.Text
+  body            String   @default("") @db.Text
+  // [{ url, name, size, type }]
+  attachments     Json     @default("[]")
+  createdAt       DateTime @default(now())
+
+  conversation SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// ChapterInfo: the name, short summary and optional full description of one
+// curriculum group, e.g. "Chapter 1 - Ohm's Law" or "Month 2 - Advanced Review".
+// Lessons (Course) join to it by (chapterType, chapterNumber). Edited by admins/teachers.
+// ---------------------------------------------------------------------------
+
+model ChapterInfo {
+  id          String   @id @default(uuid())
+  type        String   @default("Chapter")
+  number      Int
+  name        String
+  summary     String   @default("") @db.Text
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([type, number])
+}

@@ -1,0 +1,319 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { UserButton, useUser, useClerk } from '@clerk/nextjs';
+import { api } from '@/frontend/lib/api';
+import {
+	Home,
+	BookOpen,
+	Users,
+	Calendar,
+	FileText,
+	HelpCircle,
+	LogOut,
+	CheckSquare,
+	ShieldCheck,
+} from 'lucide-react';
+
+import EduLabsMark from '@/frontend/components/edulabs-mark';
+import { cn } from '@/shared/utils';
+
+interface SidebarProps {
+	className?: string;
+	initialRole?: string | null;
+	onNavigate?: () => void;
+}
+
+const Sidebar = ({ className, initialRole, onNavigate }: SidebarProps) => {
+	const pathname = usePathname();
+	const { user: clerkUser } = useUser();
+	const { signOut } = useClerk();
+
+	const [role, setRole] = useState<string | null>(
+		initialRole ? initialRole.toLowerCase() : null
+	);
+
+	useEffect(() => {
+		api
+		.get('/api/user/status')
+		.then((res) => {
+			if (res.data?.user?.role) {
+				setRole(res.data.user.role.toLowerCase());
+			}
+		})
+		.catch(() => {});
+	}, []);
+
+	const isAdminOrTeacher = role === 'admin' || role === 'teacher';
+
+	const isHomeActive = pathname === '/' || pathname === '/home';
+	const isSelfLearningActive =
+	pathname === '/self-learning' ||
+	pathname.startsWith('/self-learning') ||
+	pathname.startsWith('/courses');
+	const isGroupActive =
+	pathname === '/group' ||
+	pathname === '/groups' ||
+	pathname.startsWith('/group');
+	const isExamsActive = pathname.startsWith('/exams');
+	const isSupportActive = pathname.startsWith('/support');
+	const isTeacherActive = pathname.startsWith('/teacher');
+	const isAdminUsersActive = pathname.startsWith('/admin/users');
+	const isAdminSubmissionsActive = pathname.startsWith('/admin/submissions');
+
+	const displayName =
+	clerkUser?.fullName ||
+	clerkUser?.username ||
+	[clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') ||
+	'Student User';
+
+	return (
+		<aside
+		className={cn(
+			'h-full w-full bg-white rounded-[28px] border-[2.5px] border-black shadow-hard flex flex-col justify-between overflow-hidden select-none',
+			className
+		)}
+		>
+		<div className="flex flex-col flex-1 min-h-0">
+		{/* 1. TOP BRANDING HEADER */}
+		<div className="p-4 border-b-[2.5px] border-black flex items-center gap-3 bg-white text-black shrink-0">
+		<EduLabsMark className="h-10 w-10 shrink-0" />
+		<div className="flex flex-col min-w-0">
+		<span className="font-display text-2xl leading-none text-black truncate">
+		EduLabs
+		</span>
+		<span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+		Learning Platform
+		</span>
+		</div>
+		</div>
+
+		{/* 2. TACTILE NAVIGATION LINKS */}
+		<div className="p-3 flex flex-col space-y-1.5 overflow-y-auto scrollbar-none flex-1">
+		<Link
+		href="/home"
+		onClick={() => onNavigate?.()}
+		className={cn(
+			'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+			isHomeActive
+			? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+			: 'text-slate-700 hover:text-black hover:bg-slate-100'
+		)}
+		>
+		<Home
+		className={cn(
+			'w-[22px] h-[22px] shrink-0 transition-colors',
+			isHomeActive ? 'text-black' : 'text-slate-500'
+		)}
+		/>
+		<span>Home</span>
+		</Link>
+
+		<Link
+		href="/self-learning"
+		onClick={() => onNavigate?.()}
+		className={cn(
+			'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+			isSelfLearningActive
+			? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+			: 'text-slate-700 hover:text-black hover:bg-slate-100'
+		)}
+		>
+		<BookOpen
+		className={cn(
+			'w-[22px] h-[22px] shrink-0 transition-colors',
+			isSelfLearningActive ? 'text-black' : 'text-slate-500'
+		)}
+		/>
+		<span>Self Learning</span>
+		</Link>
+
+		<Link
+		href="/group"
+		onClick={() => onNavigate?.()}
+		className={cn(
+			'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+			isGroupActive
+			? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+			: 'text-slate-700 hover:text-black hover:bg-slate-100'
+		)}
+		>
+		<Users
+		className={cn(
+			'w-[22px] h-[22px] shrink-0 transition-colors',
+			isGroupActive ? 'text-black' : 'text-slate-500'
+		)}
+		/>
+		<span>Group</span>
+		</Link>
+
+		<div
+		aria-disabled="true"
+		className="flex items-center justify-between px-4 py-3.5 min-h-[48px] text-[15px] font-medium text-slate-400 rounded-xl cursor-not-allowed select-none"
+		>
+		<div className="flex items-center gap-3.5">
+		<Calendar className="w-[22px] h-[22px] shrink-0 text-slate-400" />
+		<span>Sessions</span>
+		</div>
+		<span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
+		Soon
+		</span>
+		</div>
+
+		<Link
+		href="/exams"
+		onClick={() => onNavigate?.()}
+		className={cn(
+			'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+			isExamsActive
+			? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+			: 'text-slate-700 hover:text-black hover:bg-slate-100'
+		)}
+		>
+		<FileText
+		className={cn(
+			'w-[22px] h-[22px] shrink-0 transition-colors',
+			isExamsActive ? 'text-black' : 'text-slate-500'
+		)}
+		/>
+		<span>Exams</span>
+		</Link>
+
+		<Link
+		href="/support"
+		onClick={() => onNavigate?.()}
+		className={cn(
+			'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+			isSupportActive
+			? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+			: 'text-slate-700 hover:text-black hover:bg-slate-100'
+		)}
+		>
+		<HelpCircle
+		className={cn(
+			'w-[22px] h-[22px] shrink-0 transition-colors',
+			isSupportActive ? 'text-black' : 'text-slate-500'
+		)}
+		/>
+		<span>Support</span>
+		</Link>
+
+		{isAdminOrTeacher && (
+			<div className="pt-3 mt-1 border-t border-slate-200/80 flex flex-col space-y-1.5">
+			<span className="px-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+			Admin &amp; Teacher
+			</span>
+			<Link
+			href="/admin/users"
+			onClick={() => onNavigate?.()}
+			className={cn(
+				'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+				 isAdminUsersActive
+				 ? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+				 : 'text-slate-700 hover:text-black hover:bg-slate-100'
+			)}
+			>
+			<Users
+			className={cn(
+				'w-[22px] h-[22px] shrink-0',
+				 isAdminUsersActive ? 'text-black' : 'text-slate-500'
+			)}
+			/>
+			<span>Users &amp; Groups</span>
+			</Link>
+
+			<Link
+			href="/admin/submissions"
+			onClick={() => onNavigate?.()}
+			className={cn(
+				'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+				 isAdminSubmissionsActive
+				 ? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+				 : 'text-slate-700 hover:text-black hover:bg-slate-100'
+			)}
+			>
+			<CheckSquare
+			className={cn(
+				'w-[22px] h-[22px] shrink-0',
+				 isAdminSubmissionsActive ? 'text-black' : 'text-slate-500'
+			)}
+			/>
+			<span>Homework Queue</span>
+			</Link>
+
+			<Link
+			href="/teacher/courses"
+			onClick={() => onNavigate?.()}
+			className={cn(
+				'relative flex items-center gap-3.5 px-4 py-3 min-h-[48px] text-[15px] font-medium rounded-2xl border-2 border-transparent transition-all duration-200 ease-out cursor-pointer active:translate-x-0.5 active:translate-y-0.5',
+				 isTeacherActive
+				 ? 'bg-primary text-black border-black font-semibold shadow-hard-sm'
+				 : 'text-slate-700 hover:text-black hover:bg-slate-100'
+			)}
+			>
+			<ShieldCheck
+			className={cn(
+				'w-[22px] h-[22px] shrink-0',
+				 isTeacherActive ? 'text-black' : 'text-slate-500'
+			)}
+			/>
+			<span>Teacher Courses</span>
+			</Link>
+			</div>
+		)}
+		</div>
+		</div>
+
+		{/* 3. BOTTOM FOOTER WITH USER PROFILE & LOGOUT */}
+		<div className="p-3 border-t-[2.5px] border-black bg-slate-50 shrink-0 space-y-2">
+		<div className="flex items-center gap-3 p-2 rounded-2xl bg-white border-2 border-black shadow-hard-sm">
+		{/* z-[99999] and pointer-events-auto fixes Clerk popover touch lock inside Radix Sheet */}
+		<UserButton
+		appearance={{
+			elements: {
+				avatarBox: 'h-9 w-9 border-2 border-black shadow-hard-sm',
+		 userButtonPopoverCard: 'shadow-hard rounded-2xl border-2 border-black z-[99999] pointer-events-auto',
+		 userButtonPopoverMain: 'z-[99999] pointer-events-auto',
+			},
+		}}
+		/>
+		<div className="flex flex-col min-w-0 flex-1">
+		<span className="text-xs font-bold text-slate-900 truncate leading-tight">
+		{displayName}
+		</span>
+		<div className="flex items-center gap-1.5 mt-0.5">
+		<span
+		className={cn(
+			'inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase leading-none border',
+			role === 'admin'
+			? 'bg-rose-50 text-rose-700 border-rose-200'
+			: role === 'teacher'
+			? 'bg-amber-50 text-amber-700 border-amber-200'
+			: 'bg-primary text-black border-black'
+		)}
+		>
+		{role ? role.toUpperCase() : 'STUDENT'}
+		</span>
+		</div>
+		</div>
+		</div>
+
+		<button
+		type="button"
+		onClick={() => {
+			onNavigate?.();
+			signOut(() => window.location.assign('/'));
+		}}
+		className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-150 w-full text-left cursor-pointer active:scale-[0.97]"
+		>
+		<LogOut className="w-4 h-4 shrink-0 text-slate-500" />
+		<span>Logout</span>
+		</button>
+		</div>
+		</aside>
+	);
+};
+
+export default Sidebar;
