@@ -11,7 +11,7 @@ import {
 	Filter,
 	Layers,
 	Loader2,
-	MessageSquareText,
+	MessageSquare,
 	RefreshCw,
 	Search,
 	ShieldCheck,
@@ -616,7 +616,7 @@ export const SubmissionsView = () => {
 								htmlFor="review-note"
 								className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600"
 							>
-								<MessageSquareText className="h-3.5 w-3.5" />
+								<MessageSquare className="h-3.5 w-3.5" />
 								Feedback note <span className="font-normal normal-case text-slate-400">(optional)</span>
 							</label>
 							<Textarea
