@@ -2,7 +2,7 @@
 
 import FileUpload from '@/frontend/components/file-upload';
 import { api } from '@/frontend/lib/api';
-import { CheckCircle, MessageSquareText } from 'lucide-react';
+import { CheckCircle, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -80,7 +80,7 @@ const HomeworkSubmissionForm = ({
 			{reviewNote && (
 				<div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-800">
 					<div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-800">
-						<MessageSquareText className="h-4 w-4" /> Teacher feedback
+						<MessageSquare className="h-4 w-4" /> Teacher feedback
 					</div>
 					<p className="whitespace-pre-wrap leading-relaxed">{reviewNote}</p>
 				</div>
