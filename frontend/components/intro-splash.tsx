@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import EduLabsMark from '@/frontend/components/edulabs-mark';
 import { cn } from '@/shared/utils';
 
-/** Total time the splash plays before it lifts (measured from when the page started loading). */
+/** Time the full animation plays before the splash lifts, counted from when it starts playing (not from page load). */
 const SPLASH_MIN_MS = 3100;
 const LEAVE_MS = 1400;
 
@@ -18,6 +18,7 @@ type Phase = 'show' | 'leave' | 'gone';
  */
 const IntroSplash = () => {
 	const [phase, setPhase] = useState<Phase>('show');
+	const [playing, setPlaying] = useState(false);
 	const leaveRef = useRef<() => void>(() => {});
 
 	useEffect(() => {
@@ -25,6 +26,9 @@ const IntroSplash = () => {
 			setPhase('gone');
 			return;
 		}
+
+		// Start the animation only once the page is interactive, so it always plays from the very beginning.
+		setPlaying(true);
 
 		const root = document.documentElement;
 		root.style.overflow = 'hidden';
@@ -42,7 +46,7 @@ const IntroSplash = () => {
 		};
 
 		leaveRef.current = leave;
-		leaveTimer = window.setTimeout(leave, Math.max(0, SPLASH_MIN_MS - performance.now()));
+		leaveTimer = window.setTimeout(leave, SPLASH_MIN_MS);
 
 		return () => {
 			window.clearTimeout(leaveTimer);
@@ -72,6 +76,7 @@ const IntroSplash = () => {
 					leaving && 'pointer-events-none -translate-y-[101%]'
 				)}
 			>
+				{playing && (
 				<div
 					className={cn(
 						'flex flex-col items-center px-4 transition-all duration-[450ms]',
@@ -96,6 +101,7 @@ const IntroSplash = () => {
 						Empowering Modern Education.
 					</p>
 				</div>
+				)}
 			</div>
 		</>
 	);
