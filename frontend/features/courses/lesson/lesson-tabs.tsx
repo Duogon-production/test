@@ -347,8 +347,6 @@ const LessonTabs = ({
 										hasSubmission={hasSubmission}
 										reviewNote={reviewNote}
 										submissionStatus={submissionStatus}
-										reviewNote={reviewNote}
-										submissionStatus={submissionStatus}
 										onSubmitted={onHomeworkSubmitted}
 									/>
 								</div>
