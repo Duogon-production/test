@@ -70,7 +70,9 @@ export const SupportChat = ({ initial, onBack }: SupportChatProps) => {
 	const ticketId = initial.ticket.id;
 
 	const { startUpload, isUploading } = useUploadThing('supportAttachment', {
-		onUploadError: (error) => toast.error(error.message || 'Upload failed.'),
+		onUploadError: (error) => {
+    	toast.error(error.message || 'Upload failed.');
+},
 	});
 
 	const refresh = useCallback(async () => {
